@@ -18,21 +18,31 @@ logging.basicConfig(
 # -----------------------------
 #   GOOGLE SHEETS SETUP
 # -----------------------------
+import os
+
 scope = ["https://spreadsheets.google.com/feeds",
          "https://www.googleapis.com/auth/drive"]
 
-creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
-client = gspread.authorize(creds)
+# Try to load from environment variable first (for production)
+# Fall back to file (for local development)
+google_creds_json = os.environ.get('GOOGLE_CREDS_JSON')
+if google_creds_json:
+    import json
+    creds_dict = json.loads(google_creds_json)
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+else:
+    creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
 
+client = gspread.authorize(creds)
 sheet = client.open("ISU_Attendance").sheet1
 
 
 # -----------------------------
 #   WHATSAPP API SETUP
 # -----------------------------
-VERIFY_TOKEN = "ISU_VERIFY"
-WHATSAPP_TOKEN = "EAAQvu2KhWQoBPZCKvHC4Bg6VBTdYhzWxaA3yOhwXM7sDYp1bFc3jr1gGLflEKKrI1yupmihnpWnJM6wBcZCXjwmPyc1wnbYmM7K5xUUAVkZBfTDW1zQirSYlrNHFtDKyMB9ZBZBZAjs6qYr8oxkHCSxmwV6isrkjN1pEBuQMWBiWIU2aCNJqF3biEPUdzRlCTBelcJf2bZCx1Aht6U0bNFawrr74mxpJ8R4PPWoWVZAnsNQa5eAZD"
-PHONE_NUMBER_ID = "882386174957956"
+VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN", "ISU_VERIFY")
+WHATSAPP_TOKEN = os.environ.get("WHATSAPP_TOKEN", "EAAQvu2KhWQoBPZCKvHC4Bg6VBTdYhzWxaA3yOhwXM7sDYp1bFc3jr1gGLflEKKrI1yupmihnpWnJM6wBcZCXjwmPyc1wnbYmM7K5xUUAVkZBfTDW1zQirSYlrNHFtDKyMB9ZBZBZAjs6qYr8oxkHCSxmwV6isrkjN1pEBuQMWBiWIU2aCNJqF3biEPUdzRlCTBelcJf2bZCx1Aht6U0bNFawrr74mxpJ8R4PPWoWVZAnsNQa5eAZD")
+PHONE_NUMBER_ID = os.environ.get("PHONE_NUMBER_ID", "882386174957956")
 
 app = Flask(__name__)
 
@@ -207,7 +217,7 @@ def webhook():
 # -----------------------------
 # DAILY SUMMARY SCHEDULER
 # -----------------------------
-GROUP_ID = "WHATSAPP_GROUP_ID"
+GROUP_ID = os.environ.get("GROUP_ID", "WHATSAPP_GROUP_ID")
 
 def send_daily_summary():
     records = sheet.get_all_records()
